@@ -77,6 +77,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             // 5. 不存在，注册逻辑
             user = createUserWithPhone(phone);
         }
+        // 维护一个登录状态校验token
         String token = UUID.randomUUID().toString(true);
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
         Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(), CopyOptions.create()
