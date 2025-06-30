@@ -43,7 +43,7 @@ public class CacheClient {
         RedisData redisData = new RedisData();
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(timeUnit.toSeconds(ttl)));
-        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData), ttl, timeUnit);
+        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData));
     }
 
     public <R, ID> R getWithPassThrough(String prefix, ID id, Class<R> type, Function<ID, R> dbCallBack,
