@@ -47,7 +47,7 @@ public class CacheClient {
     }
 
     public <R, ID> R getWithPassThrough(String prefix, ID id, Class<R> type, Function<ID, R> dbCallBack,
-                                        Long ttl, TimeUnit timeUnit) {
+                                        Long ttl, TimeUnit timeUnit) throws InterruptedException {
         String key = prefix + id.toString();
         String json = stringRedisTemplate.opsForValue().get(key);
         if (StrUtil.isNotBlank(json)) {
@@ -57,6 +57,7 @@ public class CacheClient {
             return null;
         }
         R r = dbCallBack.apply(id);
+        Thread.sleep(200);
         if (r == null) {
             stringRedisTemplate.opsForValue().set(key, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
             return null;
@@ -86,6 +87,7 @@ public class CacheClient {
             CACHE_REBUILD_EXECUTOR.submit(() -> {
                 try {
                     R ret = dbCallBack.apply(id);
+                    Thread.sleep(200);
                     setWithLogicalExpire(key, ret, ttl, timeUnit);
                 } catch (Exception e) {
                     throw new RuntimeException(e);

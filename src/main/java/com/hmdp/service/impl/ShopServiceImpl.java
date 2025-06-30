@@ -35,7 +35,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     }
 
     // 缓存穿透
-    public Shop queryWithPassThroughById(Long id) {
+    public Shop queryWithPassThroughById(Long id) throws InterruptedException {
         return cacheClient.getWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
     }
 
