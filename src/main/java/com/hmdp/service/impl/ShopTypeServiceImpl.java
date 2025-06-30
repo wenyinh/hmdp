@@ -27,8 +27,11 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
     @Override
     public List<ShopType> queryTypeList() {
         String jsonStr = stringRedisTemplate.opsForValue().get(CACHE_SHOP_TYPE);
-        if (!StrUtil.isBlank(jsonStr)) {
+        if (StrUtil.isNotBlank(jsonStr)) {
             // 缓存命中
+            if ("[]".equals(jsonStr)) {
+                return Collections.emptyList();
+            }
             return JSONUtil.toList(jsonStr, ShopType.class);
         }
         List<ShopType> typeList = query().orderByAsc("sort").list();
@@ -39,6 +42,7 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
             // 数据库也没查到
             log.info("数据库中未查到shop type");
             // 设置空值防止缓存穿透
+            // 缓存穿透解决方案：1. 设置默认空值 + TTL 2. 业务侧的非法值校验 3. 布隆过滤器
             stringRedisTemplate.opsForValue().set(CACHE_SHOP_TYPE, "[]", 5, TimeUnit.MINUTES);
             return Collections.emptyList();
         }

@@ -20,6 +20,9 @@ public class ShopTypeController {
     @GetMapping("list")
     public Result queryTypeList() {
         List<ShopType> typeList = typeService.queryTypeList();
+        if (typeList.isEmpty()) {
+            return Result.fail("shop type list为空");
+        }
         return Result.ok(typeList);
     }
 }
