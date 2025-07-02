@@ -9,7 +9,9 @@ import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdGenerator;
 import com.hmdp.utils.UserHolder;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
@@ -39,6 +41,22 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         if (stock < 1) {
             return Result.fail("库存不足");
         }
+        Long userId = UserHolder.getUser().getId();
+        synchronized (userId.toString().intern()) {
+            IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+            return proxy.createOrderByVoucherId(voucherId);
+        }
+    }
+
+    @Transactional
+    @Override
+    public Result createOrderByVoucherId(Long voucherId) {
+        Long userId = UserHolder.getUser().getId();
+        Integer count = query().eq("voucher_id", voucherId)
+                .eq("user_id", userId).count();
+        if (count > 0) {
+            return Result.fail("您已抢购过这张优惠券了");
+        }
         boolean ok = seckillVoucherService.update()
                 .setSql("stock = stock - 1") // set
                 .eq("voucher_id", voucherId) // where
@@ -50,7 +68,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         VoucherOrder voucherOrder = new VoucherOrder();
         long orderId = redisIdGenerator.nextId("order");
         voucherOrder.setId(orderId);
-        voucherOrder.setUserId(UserHolder.getUser().getId());
+        voucherOrder.setUserId(userId);
         voucherOrder.setVoucherId(voucherId);
         save(voucherOrder);
         return Result.ok(orderId);
