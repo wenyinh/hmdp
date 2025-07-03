@@ -26,6 +26,6 @@ public class SimpleRedisLock implements Ilock {
 
     @Override
     public void unlock() {
-
+        stringRedisTemplate.delete(LOCK_NAME_PREFIX + name);
     }
 }
