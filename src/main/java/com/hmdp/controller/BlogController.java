@@ -69,4 +69,16 @@ public class BlogController {
         List<Blog> records = page.getRecords();
         return Result.ok(records);
     }
+
+    /**
+     * 滚动查询关注列表的Blog
+     * @param max 上一次查询的最小score，也就是这次查询的最大score
+     * @param offset 这次查询的偏移量
+     * @return List<Blog> minTime Offset
+     */
+    @GetMapping("/of/follow")
+    public Result queryBlogOfFollow(@RequestParam("lastId") Long max,
+                                    @RequestParam(value = "offset", defaultValue = "0") Integer offset) {
+        return blogService.queryBlogOfFollow(max, offset);
+    }
 }

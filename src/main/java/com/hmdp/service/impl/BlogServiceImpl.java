@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.Follow;
@@ -19,6 +20,7 @@ import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -146,5 +148,40 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         }
         // 返回id
         return Result.ok(blog.getId());
+    }
+
+    @Override
+    public Result queryBlogOfFollow(Long max, Integer offset) {
+        Long userId = UserHolder.getUser().getId();
+        String key = RedisConstants.FEED_KEY + userId;
+        Set<ZSetOperations.TypedTuple<String>> res = stringRedisTemplate.opsForZSet().reverseRangeByScoreWithScores(key,
+                0, max, offset, 2);
+        if (res == null || res.isEmpty()) {
+            return Result.ok(Collections.emptyList());
+        }
+        List<Long> blogIds = new ArrayList<>();
+        long minTime = 0;
+        int newOffset = 1;
+        for (ZSetOperations.TypedTuple<String> tuple : res) {
+            blogIds.add(Long.valueOf(tuple.getValue()));
+            long time = tuple.getScore().longValue();
+            if (time == minTime) {
+                newOffset++;
+            } else {
+                minTime = time;
+                newOffset = 1;
+            }
+        }
+        String join = StrUtil.join(",", blogIds);
+        List<Blog> blogs = query().in("id", blogIds).last("order by field(id," + join + ")").list();
+        for (Blog blog : blogs) {
+            patchUserInfoForBlog(blog);
+            setBlogLikedStatus(blog);
+        }
+        ScrollResult sr = new ScrollResult();
+        sr.setOffset(newOffset);
+        sr.setMinTime(minTime);
+        sr.setList(blogs);
+        return Result.ok(sr);
     }
 }
